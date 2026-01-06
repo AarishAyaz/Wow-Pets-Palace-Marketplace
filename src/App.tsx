@@ -16,38 +16,43 @@ import { ProductsPage } from './components/ProductsPage';
 import { useState } from 'react';
 
 export default function App() {
+  const [currentPage, setCurrentPage] = useState<'home' | 'products'>('home');
 
-    const [currentPage, setCurrentPage] = useState<'home' | 'products'>('home');
-
-  // Simple navigation handler
   const navigateTo = (page: 'home' | 'products') => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (currentPage === 'products') {
-    return <ProductsPage onNavigateHome={() => navigateTo('home')} />;
-  }
   return (
     <div className="min-h-screen bg-background">
-      <Header/>
+      <Header />
+
       <main>
-        <HeroSection onNavigateToProducts={() => navigateTo('products')} />
-        {/* <HeroSection /> */}
-        <SearchSection />
-        <CategoryChips />
-        <FeaturedProductSection />
-        <FeaturedPetsProductsSection />
-        <ShelterSection />
-        <BreedsSection />
-        <ArticlesSection />
-        <FeaturedBanner />
-        <ContentFeed />
-        <AboutUsSection />
-        <FAQSection />
+        {currentPage === 'home' && (
+          <>
+            <HeroSection onNavigateToProducts={() => navigateTo('products')} />
+            <SearchSection />
+            <CategoryChips />
+            <FeaturedProductSection />
+            <FeaturedPetsProductsSection />
+            <ShelterSection />
+            <BreedsSection />
+            <ArticlesSection />
+            <FeaturedBanner />
+            <ContentFeed />
+            <AboutUsSection />
+            <FAQSection />
+          </>
+        )}
+
+        {currentPage === 'products' && (
+          <ProductsPage />
+        )}
       </main>
+
       <Footer />
     </div>
   );
 }
+
 

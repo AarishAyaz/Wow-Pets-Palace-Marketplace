@@ -1,6 +1,4 @@
 import { Search, Mic, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
-import { Header } from './Header';
-import { Footer } from './Footer';
 import { ProductCard } from "./ProductCard";
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -67,7 +65,6 @@ export function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <main className="container mx-auto px-4 py-8">
 
         {/* Page Title */}
@@ -120,7 +117,6 @@ export function ProductsPage() {
 
       </main>
 
-      <Footer />
     </div>
   );
 }

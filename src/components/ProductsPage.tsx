@@ -1,10 +1,9 @@
-import { Search, Mic, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { Search, Mic } from "lucide-react";
 import { ProductCard } from "./ProductCard";
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { ScrollArea } from './ui/scroll-area';
-import { useEffect, useState } from 'react';
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { ScrollArea } from "./ui/scroll-area";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 interface Product {
@@ -18,14 +17,24 @@ interface Product {
   categoryTitle: string;
 }
 
+interface Category {
+  id: string;
+  title: string;
+  productCount: number;
+}
+
 export function ProductsPage() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [minPrice, setMinPrice] = useState<number | null>(null);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+
   const itemsPerPage = 12;
 
-  // 📌 Fetch Data From API
+  /* ---------------- Fetch Products ---------------- */
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -35,13 +44,13 @@ export function ProductsPage() {
 
         const mapped = data.result.map((item: any) => ({
           id: item.id,
-    name: item.name,
-    featured_image: `https://www.wowpetspalace.com/test/${item.featured_image}`,
-    original_price: item.original_price,
-    discountPercentage: item.discountPercentage ?? 0,
-    rating: item.overall_rating ?? 0,
-    reviewsCount: item.reviewsCount ?? 0,
-    categoryTitle: item.categoryTitle,
+          name: item.name,
+          featured_image: `https://www.wowpetspalace.com/test/${item.featured_image}`,
+          original_price: item.original_price,
+          discountPercentage: item.discountPercentage ?? 0,
+          rating: item.overall_rating ?? 0,
+          reviewsCount: item.reviewsCount ?? 0,
+          categoryTitle: item.categoryTitle,
         }));
 
         setProducts(mapped);
@@ -53,26 +62,62 @@ export function ProductsPage() {
     fetchProducts();
   }, []);
 
-  // 📌 Pagination
-  const totalPages = Math.ceil(products.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const displayedProducts = products.slice(startIndex, startIndex + itemsPerPage);
+  /* ---------------- Fetch Categories ---------------- */
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data } = await axios.get(
+          "https://www.wowpetspalace.com/test/subCategory/getCountCategoryProduct"
+        );
 
-  const goToPage = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+        const mapped = data.result.map((item: any) => ({
+          id: item.category_id,
+          title: item.category_name,
+          productCount: item.product_count,
+        }));
+
+        setCategories(mapped);
+      } catch (error) {
+        console.error("Error fetching categories", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  /* ---------------- Filtering ---------------- */
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+
+    const matchesCategory = selectedCategory
+      ? product.categoryTitle === selectedCategory
+      : true;
+    const matchesPrice =
+      (minPrice === null || product.original_price >= minPrice) &&
+      (maxPrice === null || product.original_price <= maxPrice);
+
+    return matchesSearch && matchesCategory && matchesPrice;
+  });
+
+  /* ---------------- Pagination ---------------- */
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const displayedProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
-
         {/* Page Title */}
         <div className="text-center space-y-4 pt-8 pb-8">
           <h1 className="text-primary">Shop Pet Products</h1>
-          <h2 className="text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-muted-foreground max-w-3xl mx-auto">
             Find the perfect food, toys, treats, and accessories for your pet.
-          </h2>
+          </p>
         </div>
 
         {/* Search */}
@@ -80,43 +125,129 @@ export function ProductsPage() {
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
-              type="text"
               placeholder="Search pet foods, toys, treats, accessories…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-12 py-6 rounded-full border-2 border-primary/20 focus:border-primary bg-card shadow-lg focus:shadow-xl transition-all duration-300"
+              className="pl-12 pr-12 py-6 rounded-full"
             />
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full hover:bg-primary/10"
+              className="absolute right-2 top-1/2 -translate-y-1/2"
             >
-              <Mic className="w-5 h-5 text-muted-foreground" />
+              <Mic className="w-5 h-5" />
             </Button>
           </div>
         </div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+        {/* Layout */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* -------- Left Sidebar: Categories -------- */}
+          <aside className="w-80  shrink-0">
+            <div className="bg-card rounded-xl border p-4 sticky top-24">
+              <h3 className="font-semibold mb-4">Categories</h3>
 
-          {displayedProducts.map((product) => (
-            <ProductCard
-            key={product.id}
-            id={product.id}
-            name={product.name}
-            image={product.featured_image}
-            price={product.original_price}
-            originalPrice={product.original_price}
-            discountPercentage={product.discountPercentage}
-            rating={product.rating}
-            reviewsCount={product.reviewsCount}
-            category={product.categoryTitle}
-          />
-          ))}
+              <ScrollArea className="h-[200px] pr-2">
+                <ul className="space-y-2">
+                  <li>
+                    <button
+                      onClick={() => setSelectedCategory(null)}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm ${
+                        selectedCategory === null
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      All Categories
+                    </button>
+                  </li>
+
+                  {categories.map((category) => (
+                    <li key={category.id}>
+                      <button
+                        onClick={() => setSelectedCategory(category.title)}
+                        className={`w-full flex justify-between px-3 py-2 rounded-md text-sm ${
+                          selectedCategory === category.title
+                            ? "bg-primary text-primary-foreground"
+                            : "hover:bg-muted"
+                        }`}
+                      >
+                        <span>{category.title}</span>
+                        <span className="text-xs opacity-70">
+                          {category.productCount}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+              <div className="mt-6">
+                <h4 className="font-semibold mb-2 py-2 text-sm">
+                  Filter by Price
+                </h4>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Min"
+                      value={minPrice ?? ""}
+                      onChange={(e) =>
+                        setMinPrice(
+                          e.target.value === "" ? null : Number(e.target.value)
+                        )
+                      }
+                      className="w-1/2"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Max"
+                      value={maxPrice ?? ""}
+                      onChange={(e) =>
+                        setMaxPrice(
+                          e.target.value === "" ? null : Number(e.target.value)
+                        )
+                      }
+                      className="w-1/2"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="py-2 mt-4 w-full"
+                  onClick={() => {
+                    setMinPrice(null);
+                    setMaxPrice(null);
+                    setCurrentPage(1);
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </aside>
+
+          {/* -------- Products Grid -------- */}
+          <section className="lg:col-span-9">
+            <div className="flex flex-wrap gap-6 justify-center lg:justify-start">
+              {displayedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  image={product.featured_image}
+                  price={product.original_price}
+                  originalPrice={product.original_price}
+                  discountPercentage={product.discountPercentage}
+                  rating={product.rating}
+                  reviewsCount={product.reviewsCount}
+                  category={product.categoryTitle}
+                />
+              ))}
+            </div>
+          </section>
         </div>
-
       </main>
-
     </div>
   );
 }

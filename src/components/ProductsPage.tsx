@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 interface Product {
+  tags: any;
   id: string;
   name: string;
   featured_image: string;
@@ -31,6 +32,8 @@ export function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [minPrice, setMinPrice] = useState<number | null>(null);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [tags, setTags] = useState<{ id: number; name: string }[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const itemsPerPage = 12;
 
@@ -85,6 +88,20 @@ export function ProductsPage() {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const { data } = await axios.get(
+          "https://www.wowpetspalace.com/test/shop/shopTags"
+        );
+        setTags(data);
+      } catch (error) {
+        console.error("Error fetching tags", error);
+      }
+    };
+    fetchTags();
+  }, []);
+
   /* ---------------- Filtering ---------------- */
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name
@@ -98,7 +115,11 @@ export function ProductsPage() {
       (minPrice === null || product.original_price >= minPrice) &&
       (maxPrice === null || product.original_price <= maxPrice);
 
-    return matchesSearch && matchesCategory && matchesPrice;
+    const matchesTags =
+      selectedTags.length === 0 ||
+      product.tags?.some((tag: string) => selectedTags.includes(tag));
+
+    return matchesSearch && matchesCategory && matchesPrice && matchesTags;
   });
 
   /* ---------------- Pagination ---------------- */
@@ -143,86 +164,123 @@ export function ProductsPage() {
         {/* Layout */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* -------- Left Sidebar: Categories -------- */}
-          <aside className="w-80  shrink-0">
-            <div className="bg-card rounded-xl border p-4 sticky top-24">
-              <h3 className="font-semibold mb-4">Categories</h3>
-
-              <ScrollArea className="h-[200px] pr-2">
-                <ul className="space-y-2">
-                  <li>
-                    <button
-                      onClick={() => setSelectedCategory(null)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm ${
-                        selectedCategory === null
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-muted"
-                      }`}
-                    >
-                      All Categories
-                    </button>
-                  </li>
-
-                  {categories.map((category) => (
-                    <li key={category.id}>
+          <aside className="w-80 shrink-0">
+            <div className="bg-card rounded-xl border p-6 sticky top-24 flex flex-col gap-6">
+              {/* Categories */}
+              <div>
+                <h3 className="font-semibold text-base mb-3">Categories</h3>
+                <ScrollArea className="h-[220px] pr-2">
+                  <ul className="space-y-2">
+                    <li>
                       <button
-                        onClick={() => setSelectedCategory(category.title)}
-                        className={`w-full flex justify-between px-3 py-2 rounded-md text-sm ${
-                          selectedCategory === category.title
+                        onClick={() => setSelectedCategory(null)}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
+                          selectedCategory === null
                             ? "bg-primary text-primary-foreground"
                             : "hover:bg-muted"
                         }`}
                       >
-                        <span>{category.title}</span>
-                        <span className="text-xs opacity-70">
-                          {category.productCount}
-                        </span>
+                        All Categories
                       </button>
                     </li>
-                  ))}
-                </ul>
-              </ScrollArea>
-              <div className="mt-6">
-                <h4 className="font-semibold mb-2 py-2 text-sm">
-                  Filter by Price
-                </h4>
-                <div className="flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      placeholder="Min"
-                      value={minPrice ?? ""}
-                      onChange={(e) =>
-                        setMinPrice(
-                          e.target.value === "" ? null : Number(e.target.value)
-                        )
-                      }
-                      className="w-1/2"
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Max"
-                      value={maxPrice ?? ""}
-                      onChange={(e) =>
-                        setMaxPrice(
-                          e.target.value === "" ? null : Number(e.target.value)
-                        )
-                      }
-                      className="w-1/2"
-                    />
-                  </div>
-                </div>
 
+                    {categories.map((category) => (
+                      <li key={category.id}>
+                        <button
+                          onClick={() => setSelectedCategory(category.title)}
+                          className={`w-full flex justify-between px-3 py-2 rounded-md text-sm font-medium ${
+                            selectedCategory === category.title
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          <span>{category.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {category.productCount}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </ScrollArea>
+              </div>
+
+              {/* Price Filter */}
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Filter by Price</h4>
+                <div className="flex gap-2 mb-3">
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={minPrice ?? ""}
+                    onChange={(e) =>
+                      setMinPrice(
+                        e.target.value === "" ? null : Number(e.target.value)
+                      )
+                    }
+                    className="w-1/2"
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={maxPrice ?? ""}
+                    onChange={(e) =>
+                      setMaxPrice(
+                        e.target.value === "" ? null : Number(e.target.value)
+                      )
+                    }
+                    className="w-1/2"
+                  />
+                </div>
                 <Button
                   variant="outline"
-                  className="py-2 mt-4 w-full"
+                  className="w-full py-2"
                   onClick={() => {
                     setMinPrice(null);
                     setMaxPrice(null);
                     setCurrentPage(1);
                   }}
                 >
-                  Clear
+                  Clear Price
                 </Button>
+              </div>
+
+              {/* Tags Filter */}
+              <div>
+                <h4 className="font-semibold text-sm mb-2">Filter by Tags</h4>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {tags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => {
+                        if (selectedTags.includes(tag.name)) {
+                          setSelectedTags(
+                            selectedTags.filter((t) => t !== tag.name)
+                          );
+                        } else {
+                          setSelectedTags([...selectedTags, tag.name]);
+                        }
+                        setCurrentPage(1); // reset pagination when filter changes
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors duration-200 ${
+                        selectedTags.includes(tag.name)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-muted-foreground border-transparent hover:bg-muted/70"
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
+                {selectedTags.length > 0 && (
+                  <Button
+                    variant="outline"
+                    className="w-full py-2"
+                    onClick={() => setSelectedTags([])}
+                  >
+                    Clear Tags
+                  </Button>
+                )}
               </div>
             </div>
           </aside>

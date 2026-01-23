@@ -3,13 +3,19 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-interface HeroSectionProps {
-  onNavigateToProducts?: () => void;
-}
+// interface HeroSectionProps {
+//   onNavigateToProducts?: () => void;
+// }
 
-export function HeroSection({ onNavigateToProducts }: HeroSectionProps) {
+export function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const navigate = useNavigate();
+
+  const onNavigateToProducts = () => {
+    navigate('/shop');
+  };
 
   const quickActions = [
     { icon: ShoppingBag, title: "Shop Products", count: "5,000+" },

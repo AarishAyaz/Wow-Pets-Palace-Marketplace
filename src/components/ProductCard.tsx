@@ -3,6 +3,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { ShoppingCart, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
   id: number | string;
@@ -27,14 +28,14 @@ export function ProductCard({
   reviewsCount = 0,
   category
 }: ProductCardProps) {
-  
+  const navigate = useNavigate();
   const discountedPrice =
     discountPercentage > 0
       ? +(price * (1 - discountPercentage / 100)).toFixed(2)
       : price;
 
   return (
-    <Card className="group overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+    <Card  onClick={() => navigate(`/product/${id}`)} className="group overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
       <div className="relative">
         {/* Image */}
         <div className="aspect-[4/3] overflow-hidden bg-gray-50">
